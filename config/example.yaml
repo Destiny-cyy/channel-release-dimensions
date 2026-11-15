@@ -1,0 +1,272 @@
+# 渠道发行维度体系 · 可换配置层（示例模板，全部占位符）
+#
+# ★ 这是「换项目唯一要改的地方」。骨架层与分发元信息文件（清单见 分发说明.md §3）**不动**。
+# ★ 本文件所有 <...> 都是占位符，不是真实业务值；请勿把任何真实资料填进这份示例。
+# ★ 用法：复制本文件 → 改名如 config/<新项目代号>.yaml → 逐项填真实值 → 确认 tags/tags.yaml 无需改动（见 使用说明_一页纸.md）。
+# ★ 分发说明、适用与限制见 分发说明.md；包级版本见 CHANGELOG.md。
+#
+# version: 1.0.0 | updated: 2026-11-12 | package_version: 1.1.0 | status: 模板
+
+config_version: "1.0.0"
+project:
+  id: "<PROJECT_ID>"                 # 项目代号（脱敏，不写真实名称）
+  display_name: "<新游戏项目>"
+  project_note: "同类型游戏项目复制本配置即可复用骨架；下面是必改项清单"
+
+# ─────────────────────────────────────────────
+# 【必改 1】定位族坐标取值 —— 对应 README §2.1
+# ─────────────────────────────────────────────
+locating:
+  # 一号区分维度；跨游戏资料不可互证
+  games:
+    - "<GAME_A>"
+    - "<GAME_B>"
+  # 区服是游戏的下一级；跨区服不可互证；无分区服的项目可整维停用
+  servers:
+    "<GAME_A>": ["<SERVER_1>"]
+    "<GAME_B>": ["<SERVER_1>", "<SERVER_2>"]
+  # 渠道口径：分口径清单，铁律「跨口径不可互证」
+  channel_calibers:
+    "<CALIBER_ID>":
+      applies_to: "<GAME_A>"
+      structure: [内渠, 外渠, 平台货架, 官方直营, 独立统计]
+      内渠: ["<CHANNEL_1>", "<CHANNEL_2>"]
+      外渠: ["<CHANNEL_3>", "<CHANNEL_4>"]
+      平台货架: ["<PLATFORM_1>"]
+      官方直营: ["<OFFICIAL_1>"]
+      独立统计: ["<STANDALONE_1>"]
+      未归类: []                    # 口径不统一的渠道，别硬归类
+      caliber_note: "查渠道前必须先确认用哪一套口径；不同游戏的渠道体系可能完全不同"
+  # 模块：渠道的聚合层，与渠道共用一份坐标字典
+  modules: ["<MODULE_公共>", "<MODULE_单渠道>", "<MODULE_专项>"]
+  # 节点词表（含别名），笼统活动名必须同时确认渠道 + 时间节点
+  nodes:
+    - name: "<NODE_定档>"
+      aliases: ["<别名1>"]
+      date: "<YYYY-MM-DD>"
+    - name: "<NODE_首发>"
+      aliases: []
+      date: "<YYYY-MM-DD>"
+  activity_types: [版本活动, 推广活动, 运营活动]
+  # 三类活动在表里写法完全不同，禁止混谈互推
+  separate_events:                  # 三件事必须分离，禁止互相推导
+    - "<EVENT_PV发布>"
+    - "<EVENT_游戏定档>"
+    - "<EVENT_首发上线>"
+  # 时间坐标
+  time:
+    window_start: "<YYYY-MM-DD>"    # 口径时间窗起
+    window_end: "<YYYY-MM-DD>"      # 口径时间窗止
+    week_key_format: "<YYYYMMDD或YYYYWW>"
+    check_points: ["<CHECK_1>", "<CHECK_2>", "<CHECK_3>"]
+    # 轴识别优先于表头识别；合并单元格需向下填充还原
+  # 生命周期阶段包（可主阶段 + 局部阶段叠加）
+  phases:
+    - id: "<PHASE_预约期>"
+      core_nodes: ["<NODE_1>", "<NODE_2>"]
+      core_metrics: ["<METRIC_预约量>", "<METRIC_CPA>"]
+      high_freq_tables: ["<TEMPLATE_1>", "<TEMPLATE_2>"]
+      check_focus: ["<CHECK_FOCUS_1>"]
+    - id: "<PHASE_首发期>"
+      core_nodes: []
+      core_metrics: []
+      high_freq_tables: []
+      check_focus: []
+    - id: "<PHASE_运营期>"
+      core_nodes: []
+      core_metrics: []
+      high_freq_tables: []
+      check_focus: []
+
+# ─────────────────────────────────────────────
+# 【必改 2】分类族枚举 —— 对应 README §2.2
+# ─────────────────────────────────────────────
+classifying:
+  # 12 信息域（通用骨架，按新项目启用/改名）
+  info_domains:
+    - 项目基础
+    - 节点
+    - 排期
+    - 任务与进度
+    - 渠道合作
+    - 资源位
+    - 投放
+    - 素材
+    - 效果数据
+    - 奖励与 CDK
+    - 预算与目标
+    - 文档与人员
+  # 15 信息类别（按业务链条位置分，不按文件分）
+  info_categories:
+    - 负责人
+    - 上线时间
+    - 平台要求
+    - 文案
+    - 需求
+    - 规则
+    - 区服
+    - 资源排期
+    - 链接
+    - 游戏
+    - 活动内容
+    - 素材
+    - 推广活动
+    - 版本活动
+    - 运营活动
+  # 聚居度阈值（判据，一般不用改）
+  density_thresholds:
+    clustered_max_tables: 10         # ≤10 份 = 聚居 → 整表映射
+    semi_max_tables: 50              # 11–50 = 半聚居 → 定位区域；>50 = 弥散 → 靠坐标
+  # 7 表种
+  table_kinds:
+    - 周会表
+    - 渠道工作总表
+    - 资源素材需求表
+    - 节点筹备 Checklist
+    - 数据表
+    - 活动礼包表
+    - 专项表
+  # 16 类模板骨架（结构，不含实例值）
+  template_groups:
+    规划: [版本发布日历, 资源排期日历, 活动方案表, 奖励规划表, 素材规划表, 预算目标表]
+    执行: [工作日程表, 资源投放表, 进度Checklist, 周会Checklist]
+    复盘: [资源位返图表, 效果复盘表, 用户标签表]
+    管理: [渠道合作总览, 信息收集表, CDK台账]
+  layers: [索引层, 明细层]
+  # 两层之间需任务编号；编号体系尚未建立，属已知断点
+
+# ─────────────────────────────────────────────
+# 【必改 3】名称归一化字典 —— 对应 README §2.4
+# 铁律：规则取自资料内部写法，禁止从答案反推
+# ─────────────────────────────────────────────
+normalization:
+  case_insensitive: true
+  strip_prefixes: ["<分类前缀1>-", "<分类前缀2>-"]
+  strip_suffixes: []                 # ⚠️ 来源项目经验：'渠道'/'平台' 是类型词一部分，勿全局剥离；新项目按自身写法复核
+  trim: true
+  normalize_width: true
+  aliases:
+    "<标准名1>": ["<别名1>", "<别名2>"]
+    "<标准名2>": ["<别名1>"]
+  alias_cautions:
+    "<标准名1>": "仅在计数合并时可用；区分端口时不可合并"
+  value_whitelist:                   # 白名单必须先于形态规则，防过度扣留
+    - "<渠道名1>"
+    - "<渠道名2>"
+    - 已完成
+    - 进行中
+    - 待确认
+
+# ─────────────────────────────────────────────
+# 【必改 4】角色名（脱敏职能名，不写真实人名/账号）
+# ─────────────────────────────────────────────
+roles:
+  decision_maker: "<ROLE_业务方拍板人>"
+  channel_owner: "<ROLE_渠道负责人>"
+  pm: "<ROLE_PM>"
+  exec_support: "<ROLE_执行支持>"
+  content_reviewer: "<ROLE_内容评审>"
+  rule_qc: "<ROLE_规则质检>"
+  ai_assistant: "<ROLE_AI助手>"
+  deterministic_script: "<ROLE_确定性脚本>"
+  # 负责人字段本身属 D 敏感，只作归属外键，助手不代填
+
+# ─────────────────────────────────────────────
+# 【必改 5】资料来源与授权范围 —— 对应 WORKFLOW L0
+# ─────────────────────────────────────────────
+sources:
+  primary: []                        # 主资料（文档名/子表/坐标），逐项登记
+  copies: []                         # 副本，标明对应主资料
+  allowed_chat_scope: []             # 指定群/时段，仅只读取证
+  online_first: true                 # 在线协作文档通常比本地快照更全，先查在线再谈本地；具体平台由新项目自定
+  excluded: []                       # 明确剔除的资料 + 剔除原因（必写）
+  read_only: true                    # 原表只读，永不回写
+  write_targets: []                  # 授权新表/独立副本，命名带「测试/副本」
+  # 禁止遍历整个快照目录；禁止按是否含有答案值挑资料
+
+# ─────────────────────────────────────────────
+# 【必改 6】口径数字（项目专属，骨架不携带）
+# 铁律：任何比例必须标分母；数字分有效/待定/废弃三态
+# ─────────────────────────────────────────────
+metrics:
+  total_cells: "<INT>"               # 全量格数
+  withheld_cells: "<INT>"            # 扣留格（单列清单，移出分母）
+  effective_denominator: "<INT>"     # = 全量 − 扣留
+  coverage_numerator: "<INT>"
+  coverage_denominator: "<INT>"      # 必须写明用哪个分母
+  coverage_rate: "<计算值，标注分母>"
+  status_map:                        # 数字口径三态
+    valid: []
+    pending: []
+    deprecated: []
+  # 这些数字随项目重算，禁止从别的项目继承
+
+# ─────────────────────────────────────────────
+# 【必改 7】敏感分级（按字段语义，不按列坐标）
+# ⚠️ 使用方需自行确认是否采用此分级（来源项目为待确认项）；见 分发说明.md §5
+# ─────────────────────────────────────────────
+sensitive:
+  mode: by_field_semantics           # 禁止 by_column_coordinate
+  whitelist_first: true
+  rules:
+    owner:  { action: withhold,    semantics: [负责人, owner, PM, 执行人, 对接人] }
+    account: { action: withhold,    semantics: [账号, 手机号, 邮箱, 工号] }
+    code:   { action: count_only,  semantics: [CDK, 激活码, 兑换码, 礼包码] }
+    budget: { action: header_only, semantics: [预算, 金额, 费用, 结算] }
+  # 防两头：漏扣与过度扣留都是风险；按列配规则换源即绕过
+
+# ─────────────────────────────────────────────
+# 【必改 8】业务目标开关 —— 决定跑哪几层（WORKFLOW §3）
+# ─────────────────────────────────────────────
+workflow_goals:
+  available:
+    - goal: fill_existing_table
+      layers: [L0, L1, L3, L4, L5]
+      goal_note: 重点是接住结构 + 位置对准
+    - goal: content_exam
+      layers: [L0, L1, L2, L3, L5]
+      goal_note: 考找全 + 来源支撑，不以排版上色验收
+    - goal: schedule_table
+      layers: [L0, L1, L2, L4]
+      goal_note: 节点/日期属 A 类，可全自动出初稿
+    - goal: resource_table
+      layers: [L0, L1, L2, L3, L4]
+      goal_note: 能出框架，渠道资源位清单可能缺
+    - goal: weekly_skeleton
+      layers: [L0, L1, L3, L4]
+      goal_note: 不跑 L2，召回率指标对这类活无意义
+    - goal: new_table_design
+      layers: [L0, L1, L2, L3, L4, L5]
+      goal_note: 先起草说明书并核实
+    - goal: rule_regression
+      layers: [L5]
+      goal_note: 双轨回归，验证不退化即可
+  default_goal: fill_existing_table
+  # 选层是业务判断，不是技术默认；换目标先改这里
+
+# ─────────────────────────────────────────────
+# 【必改 9】闸门阈值（一般微调）
+# ─────────────────────────────────────────────
+gates:
+  G3_recall:
+    every_cell_has_record: 1.0       # 100%
+    citation_over_union: 0.60        # 引用坐标数 ÷ 四路并集 ≥60%
+    unresolved_min_queries: 3        # 每条 unresolved 附 ≥3 条检索式
+  G6_judgment:
+    frozen_answers: true
+    code_judged: true                # 不用模型阅卷
+    # 提覆盖率前必须先有裁判
+
+# ─────────────────────────────────────────────
+# 迁移检查清单（换项目逐条打勾）
+# ─────────────────────────────────────────────
+migration_checklist:
+  - "[ ] 复制本文件并改名，project.id 已填"
+  - "[ ] 必改 1–9 全部填真实值，无遗留 <> 占位符"
+  - "[ ] 骨架层与分发元信息文件未改动（清单见 分发说明.md §3）"
+  - "[ ] 已确认 tags/tags.yaml 无需改动（59 个标签全为 generic）；如有新项目专属标签，按 tag_schema 规则新增并标 project_specific"
+  - "[ ] 逐格重新打了 A/B/C/D（性质是资料属性，不继承）"
+  - "[ ] README §9 六项分发版自检通过（对齐/脱敏/标签/覆盖/包完整性/无悬空引用）"
+  - "[ ] 已阅读 分发说明.md 的使用条款与限制"
+  - "[ ] 在 CHANGELOG.md 记一笔包版本（版本 / 日期 / 改了哪些配置）"
+  - "[ ] 明确记录「带不走、需重喂」的资料清单"

@@ -1,0 +1,282 @@
+# 渠道发行维度体系 · 标签库 Schema（唯一规则来源）
+#
+# 本文件只定义「标签怎么造、怎么命名、怎么维护」，不含任何具体项目值。
+# 标签实例见 tags.yaml；换项目时本文件**不动**，tags.yaml 默认也无需改（见 使用说明_一页纸.md），只改 config/。
+#
+# 设计借鉴（2026-11-12 调研，仅借方法论、未引入任何代码）：
+#   - 游戏遥测/事件字典规范：小写+下划线、语义只增不改、字典是唯一事实来源、新增先答三问
+#   - 公共术语表方法：稳定 ID、prefLabel/altLabel/hiddenLabel、broader/related、退役不删除
+#   - 版本化受控词表实践：封闭词表、未知标签写入即拒、一维一值、必填维度、改动走评审
+#   - 术语退役 playbook / headwater：改名=新增+废弃+迁移窗口、last_verified 与 last_edited 分开
+#
+# version: 1.0.0 | updated: 2026-11-12 | scope: generic | package_version: 1.1.0 | status: 可作为分发版使用
+# 注：schema_version 是本规则文件自己的语义版本；包版本见 CHANGELOG.md。
+
+schema_version: "1.0.0"
+updated: "2026-11-12"
+scope: generic
+
+# ─────────────────────────────────────────────
+# 一、标签分类（family）：五类，职责单一不重叠
+# ─────────────────────────────────────────────
+families:
+  dimension:
+    label: 维度标签
+    purpose: 标记一条记录挂在哪个坐标/属于哪类信息（对应 README §2 四族维度）
+    values_from: README.md §2
+  nature:
+    label: 性质标签
+    purpose: 判定 AI 能不能动这格（A/B/C/D），全体系中枢
+    values_from: README.md §2.3
+  action:
+    label: 动作标签
+    purpose: 直接告诉 AI 该做什么（能不能填/去哪找/要不要扣留/要不要问人）
+    values_from: 由 nature + 治理规则推导，见 action_mapping
+  state:
+    label: 状态标签
+    purpose: 标记一个值或一条结论当前处于什么状态（确认/待定/缺口/扣留/碰巧）
+    values_from: WORKFLOW.md §6
+  governance:
+    label: 治理标签
+    purpose: 标记适用的口径、证据、授权约束（算不算对/能不能用）
+    values_from: README.md §2.4
+
+# ─────────────────────────────────────────────
+# 二、层级（layer）：四层，标签名用点分体现
+# ─────────────────────────────────────────────
+layers:
+  - id: L0
+    name: scheme
+    label: 词表层
+    note: 整个标签库是一个封闭词表（concept scheme），一个项目一套实例
+  - id: L1
+    name: family
+    label: 分类层
+    note: 上节五类之一
+  - id: L2
+    name: class
+    label: 维度族/类层
+    note: 如 dim.locating / dim.classifying / nature / governance.caliber
+  - id: L3
+    name: value
+    label: 取值层
+    note: 具体标签值，如 nature.fact_queryable、action.auto_fill_with_coordinate
+
+# ─────────────────────────────────────────────
+# 三、命名规则（借鉴受控词表，违反即拒绝入库）
+# ─────────────────────────────────────────────
+naming_rules:
+  format: "<family>.<class>.<value>"
+  charset: "小写英文字母 + 数字 + 点分层级 + 下划线连接，禁止空格、中文、大写、连字符"
+  id_format: "稳定 ID，形如 T-<family缩写>-<3位序号>，一经分配永不改变"
+  id_immutable: true              # 标签可改名，ID 不变；历史引用靠 ID 不断链
+  rules:
+    - id: N1
+      rule: 版本、数值、参数、项目代号、游戏名、渠道名、日期一律**不进标签名**
+      why: 标签是通用骨架；实例值放 tags.yaml 与 config/，写死就不可迁移
+    - id: N2
+      rule: 名字以名词或动词收尾，语义只描述「是什么/做什么」，不描述「有多少/哪一天」
+      why: 借鉴事件字典「对象_动作」「动词收尾」规范
+    - id: N3
+      rule: 一个标签只表达一个维度的一个值；需要两个值 → 拆成两条记录或新开维度，禁止复合标签
+      why: 复合值会让聚合统计失效
+    - id: N4
+      rule: 同一概念只一个首选名（pref label）；别名、旧写法、易错写法分别登记，不另造同义标签
+      why: 借鉴公共术语表的首选名、别名与隐藏名三分离
+    - id: N5
+      rule: 标签名不含答案口径；归一化规则取自资料内部写法，禁止从答案反推
+      why: 防泄题式偏差（历史实测事故）
+    - id: N6
+      rule: 未知标签一律拒绝写入，落「未识别标签清单」上报，AI 不得自造标准名
+      why: 词表封闭才可跨版本聚合（借鉴 taxonomy.yml 写入时校验）
+  reserved_prefixes: ["dim.", "nature.", "action.", "state.", "gov.", "governance."]
+  prefix_note: "L2 类层上位标签用全名 governance.*；L3 取值层用缩写 gov.*，两者不得在同一层级混用"
+
+# ─────────────────────────────────────────────
+# 四、字段定义（每个标签实例必须齐备）
+# ─────────────────────────────────────────────
+fields:
+  required:
+    id:
+      type: string
+      desc: 稳定 ID，永不改变
+    label:
+      type: string
+      desc: 首选名（机器用，符合命名规则）
+    display:
+      type: string
+      desc: 给人看的大白话名称（业务方读这个，不读 label）
+    family:
+      type: enum
+      enum: [dimension, nature, action, state, governance]
+      desc: 所属分类
+    layer:
+      type: enum
+      enum: [L0, L1, L2, L3]
+      desc: 所处层级
+    definition:
+      type: string
+      desc: 唯一且清晰的定义，建立一致理解
+    applies_to:
+      type: list
+      desc: 适用场景（哪种表/哪类格/哪个环节），见 §五
+    related_dimensions:
+      type: list
+      desc: 关联的维度族或维度（对应 README §2 四族）
+    action:
+      type: string
+      desc: 命中此标签后 AI 应执行的动作（引用 action 类标签的 label，词表内；action 类自身填 self）
+    status:
+      type: enum
+      enum: [draft, active, deprecated, superseded]
+      desc: 生命周期状态；superseded = 有替代者的终态，与 lifecycle.terminal_states 一致
+    scope:
+      type: enum
+      enum: [generic, project_specific]
+      desc: 通用骨架（换项目不动）或项目专属（随配置刷新）
+  optional:
+    aliases:
+      type: list
+      desc: 别名/旧写法/易错写法，比对前先归一化
+    broader:
+      type: string
+      desc: 上位标签的 label（层级，词表内；本实例集统一用 label 引用，不用稳定 ID）
+    related:
+      type: list
+      desc: 关联标签的 label（非层级关系）
+    superseded_by:
+      type: string
+      desc: 退役后指向的替代标签 label（词表内）
+    deprecated_since:
+      type: date
+      desc: 标记废弃的日期，用于迁移窗口
+    evidence_required:
+      type: boolean
+      desc: 命中此标签是否必须附坐标/原文
+    reviewer:
+      type: string
+      desc: 评审责任人（职能名，脱敏，不写真实人名）
+    last_verified:
+      type: date
+      desc: 人最后一次确认「标签定义与业务现实一致」的日期
+    note:
+      type: string
+      desc: 补充说明
+
+# ─────────────────────────────────────────────
+# 五、适用场景枚举（applies_to 只能取这些值）
+# ─────────────────────────────────────────────
+applies_to_vocab:
+  - any_record          # 任意记录
+  - any_cell            # 任意单元格
+  - table_structure     # 表结构/填写说明书
+  - retrieval           # 找资料/检索环节
+  - fill_decision       # 性质判定环节
+  - skeleton_row        # 骨架行（项目×模块的固定组合）
+  - progress_cell       # 进展/计划/风险格
+  - sensitive_field     # 敏感字段
+  - source_identity     # 资料身份与范围
+  - exam_and_gate       # 考试/验收/闸门
+  - write_target        # 写入目标（新表/副本）
+  - cross_table         # 跨表关联/汇总
+
+# ─────────────────────────────────────────────
+# 六、关联维度映射（标签 ↔ README §2 四族）
+# ─────────────────────────────────────────────
+related_dimensions_vocab:
+  locating: 定位族（游戏/区服/渠道·模块/节点/时间/阶段）
+  classifying: 分类族（信息域/信息类别/聚居度/表种/模板/层次）
+  nature: 性质族（A/B/C/D）
+  governance: 治理族（口径/数字/归一化/敏感/授权/证据/验收）
+  workflow: 工作流层（L0–L5，见 WORKFLOW.md）
+
+# ─────────────────────────────────────────────
+# 七、性质 → 动作映射（AI 判定的核心规则）
+# ─────────────────────────────────────────────
+action_mapping:
+  nature.fact_queryable:   action.auto_fill_with_coordinate   # A：能自动，必须附坐标
+  nature.live_status:      action.emit_pending_list            # B：不猜，出待确认清单+坐标
+  nature.judgment:         action.propose_options              # C：只出选项+依据
+  nature.sensitive:        action.withhold_and_point           # D：不读，只指路
+  conflict_detected:       action.flag_red_and_escalate        # 资料打架：标红上报，不选边
+  evidence_missing:        action.mark_unresolved              # 查不到：写 unresolved + 检索式
+  blank_cell:              action.trichotomize_blank           # 空白：三分判定，不默认完成/未完成
+
+# ─────────────────────────────────────────────
+# 八、生命周期与状态机
+# ─────────────────────────────────────────────
+lifecycle:
+  transitions: "draft ──▶ active ──┬──▶ superseded（有替代者）\n                └──▶ deprecated（无替代者）\n        draft ──▶ deprecated"
+  terminal_states: [superseded, deprecated]
+  rules:
+    - 终态标签保留在词表中，**永不物理删除**（历史引用不断链）
+    - 消费者在展示时过滤 deprecated/superseded，并跟随 superseded_by 重新索引
+    - draft 标签不得用于生产判定，只能作候选
+    - 状态变更必须同时更新 last_verified 与 reviewer；只改状态不改日期视为无效变更
+
+# ─────────────────────────────────────────────
+# 九、维护与扩展规则（重点：只增不改）
+# ─────────────────────────────────────────────
+maintenance:
+  governing_principle: 封闭受控词表；任何改动是可评审的单元，不是运行时临时加值
+  change_requires:
+    - 写明变更理由（新增业务概念 / 上游口径变动 / 修正定义错误）
+    - 指定评审责任人（职能名）
+    - 关联影响面（哪些标签/映射/README 章节要同步）
+    - 跑一遍回归（§十）
+    - 升 schema_version，并在包级 CHANGELOG.md 留一行
+  additive_change:            # 新增
+    sequence: "先扩词表定义 → 再补实例 → 再让生产使用"
+    check: 新增前先答三问：① 它要回答什么业务问题 ② 谁消费它 ③ 半年后还有没有人看；答不全不加
+    version_bump: minor
+    note: 纯新增无兼容风险，可先于使用方发布
+  deprecation:                # 废弃
+    sequence: "先停止产生新引用 → 迁移或显式接受历史数据 → 标 deprecated/superseded → 保留不删"
+    rule: 优先 deprecated 而非删除；删除会让所有历史引用悬空
+    version_bump: major
+    requires: superseded_by + deprecated_since + 迁移窗口
+  rename:                     # 改名
+    rule: 改名 = 新增新标签 + 废弃旧标签，**并行并留显式迁移窗口**，绝不原地改 ID 或 label
+    why: 所有历史引用仍指向旧 ID，静默改名会造成断链
+    version_bump: major
+  forbidden:
+    - 原地修改已发布标签的语义（语义变了必须新增+废弃）
+    - 删除或复用已发布 ID
+    - 运行时由 AI 临时自造标签值
+    - 把项目专属值写进通用标签名
+    - 用复合值表达两个维度
+
+# ─────────────────────────────────────────────
+# 十、质量校验（每次改动/换项目后必跑）
+# ─────────────────────────────────────────────
+validation_checks:
+  - id: V1
+    check: 每个实例必填字段齐全（§四 required 全有值）
+  - id: V2
+    check: id 全局唯一且不可变；label 符合命名规则 N1–N6
+  - id: V3
+    check: 首选名/别名/隐藏名三者字符串不冲突；同一概念只有一个首选名
+  - id: V4
+    check: broader/narrower 链无环；broader 与 related 不对同一对标签同时成立
+  - id: V5
+    check: 每个 active 标签都能追溯到 top-level family；无孤立标签
+  - id: V6
+    check: action 字段引用的动作标签存在且为 active
+  - id: V7
+    check: 每个 deprecated/superseded 标签都有 superseded_by 或明确「无替代者」
+  - id: V8
+    check: scope=project_specific 的实例值与 config/ 一致；scope=generic 的不含任何项目值
+  - id: V9
+    check: 脱敏扫描——无真实姓名/账号/表地址/群名/口令/CDK/预算金额/项目统计数字
+  - id: V10
+    check: 状态变更都带 last_verified 且日期不晚于当前、不早于前一状态
+
+# ─────────────────────────────────────────────
+# 十一、版本演进
+# ─────────────────────────────────────────────
+versioning:
+  scheme: "MAJOR.MINOR.PATCH"
+  patch: 仅改 display/note/别名等展示性内容，无兼容影响
+  minor: 纯新增标签或新增可选字段（向后兼容）
+  major: 废弃、改名、改语义、改必填字段、改 action_mapping（可能破坏历史引用）
+  gate: 改动前用 version-diff 判定 bump 级别，作为「能不能合入」的门禁而非仅报告

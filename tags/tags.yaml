@@ -1,0 +1,754 @@
+# 渠道发行维度体系 · 标签实例（脱敏，给 AI 判定用）
+#
+# 规则来源：tag_schema.yaml（本文件不定义规则，只提供实例）
+# 换项目：本文件 59 个标签全为 scope=generic，默认**不用改**；仅补别名／新增 project_specific／标 deprecated 三种情况才动，见 使用说明_一页纸.md。
+# 本文件不含任何真实人名、账号、表地址、群名、游戏名、渠道名、日期或统计数字。
+#
+# version: 1.0.0 | updated: 2026-11-12 | scope: generic | package_version: 1.1.0 | status: 可作为分发版使用
+
+meta:
+  schema_ref: "tags/tag_schema.yaml"
+  instance_version: "1.0.0"
+  package_version: "1.1.0"
+  updated: "2026-11-12"
+  project_id: "<PROJECT_ID>"        # 占位符，换项目填
+  note: "所有 <> 包裹的值均为占位示例，非真实业务值"
+
+# ═══════════════════════════════════════════════════════════════
+# 一、维度标签（dimension）—— 挂坐标 / 归类
+# ═══════════════════════════════════════════════════════════════
+dimension_tags:
+
+  # ── 定位族（四族之一）─────────────────────────────
+  - id: T-DIM-001
+    label: dim.locating.game
+    display: 游戏坐标
+    family: dimension
+    layer: L3
+    broader: dim.locating
+    definition: 记录所属的项目主体，定位族的一号区分维度，决定查哪套资料
+    applies_to: [any_record, source_identity]
+    related_dimensions: [locating]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    aliases: [项目主体, 产品]
+    evidence_required: false
+    note: 跨游戏资料不可互证；取值来自 config/ 的游戏清单
+
+  - id: T-DIM-002
+    label: dim.locating.server
+    display: 区服坐标
+    family: dimension
+    layer: L3
+    broader: dim.locating
+    definition: 游戏的下一级运营单元；区服是游戏的下一级，跨区服资料不可互证
+    applies_to: [any_record, source_identity]
+    related_dimensions: [locating]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    note: 取值来自 config/；无分区服的项目可整维停用
+
+  - id: T-DIM-003
+    label: dim.locating.channel_or_module
+    display: 渠道 / 模块坐标
+    family: dimension
+    layer: L3
+    broader: dim.locating
+    definition: 分发或曝光的落点；模块是渠道的聚合层，两者共用一份坐标字典
+    applies_to: [any_record, cross_table]
+    related_dimensions: [locating, classifying]
+    action: action.normalize_then_match
+    status: active
+    scope: generic
+    evidence_required: true
+    note: 「全平台/全渠道」项目级口径不能充当某个渠道的答案；比对前必做归一化
+
+  - id: T-DIM-004
+    label: dim.locating.node
+    display: 节点坐标
+    family: dimension
+    layer: L3
+    broader: dim.locating
+    definition: 业务时间锚点（版本/活动/渠道节点）；同名不同节点视为不同内容
+    applies_to: [any_record, retrieval]
+    related_dimensions: [locating]
+    action: action.confirm_channel_and_time
+    status: active
+    scope: generic
+    evidence_required: true
+    note: 笼统活动名必须同时确认渠道 + 时间节点
+
+  - id: T-DIM-005
+    label: dim.locating.time
+    display: 时间坐标
+    family: dimension
+    layer: L3
+    broader: dim.locating
+    definition: 日期轴 / 周次 / 检查时点 / 时间窗；轴识别优先于表头识别
+    applies_to: [any_record, table_structure, retrieval]
+    related_dimensions: [locating]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    note: 合并单元格逐行读会丢值，需向下填充还原；月份行与独立日期行分两种版式
+
+  - id: T-DIM-006
+    label: dim.locating.phase
+    display: 生命周期阶段
+    family: dimension
+    layer: L3
+    broader: dim.locating
+    definition: 预约期 / 首发期 / 运营期；可主阶段 + 局部阶段叠加
+    applies_to: [any_record, table_structure]
+    related_dimensions: [locating]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    note: 决定启用哪套模板、指标与校验重点；阶段不同不可互证
+
+  # ── 分类族 ──────────────────────────────────────
+  - id: T-DIM-010
+    label: dim.classifying.info_domain
+    display: 信息域（12 类）
+    family: dimension
+    layer: L3
+    broader: dim.classifying
+    definition: 按业务职能划分的一级资料分类，用于建资料地图
+    applies_to: [source_identity, table_structure]
+    related_dimensions: [classifying]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    note: 12 类为通用骨架，具体名称与启用项由 config/ 定义
+
+  - id: T-DIM-011
+    label: dim.classifying.info_category
+    display: 信息类别（按链条位置）
+    family: dimension
+    layer: L3
+    broader: dim.classifying
+    definition: 信息在业务链条上的位置；不是按文件分，是按「它在链条上的位置」分
+    applies_to: [retrieval, source_identity]
+    related_dimensions: [classifying]
+    action: action.pick_retrieval_strategy
+    status: active
+    scope: generic
+    note: 常见 15 类，实测发现只有「运营活动」类天然聚居
+
+  - id: T-DIM-012
+    label: dim.classifying.density
+    display: 聚居度
+    family: dimension
+    layer: L3
+    broader: dim.classifying
+    definition: 一类信息分散在几份表里；决定用什么取法
+    applies_to: [retrieval]
+    related_dimensions: [classifying]
+    action: action.pick_retrieval_strategy
+    status: active
+    scope: generic
+    note: "聚居(≤10份)→整表映射；半聚居(11–50)→定位区域；弥散(>50)→只能靠坐标"
+
+  - id: T-DIM-013
+    label: dim.classifying.table_kind
+    display: 表种（7 种）
+    family: dimension
+    layer: L3
+    broader: dim.classifying
+    definition: 表按「管什么」分类，决定填写说明书与主要信息性质
+    applies_to: [table_structure, skeleton_row]
+    related_dimensions: [classifying, nature]
+    action: action.load_fill_instruction
+    status: active
+    scope: generic
+    note: 七种为通用骨架；周会表主要 A+B，数据表主要 B
+
+  - id: T-DIM-014
+    label: dim.classifying.template_type
+    display: 模板类型（16 类骨架）
+    family: dimension
+    layer: L3
+    broader: dim.classifying
+    definition: 可复用的表结构类型，按规划/执行/复盘/管理四组
+    applies_to: [table_structure, write_target]
+    related_dimensions: [classifying]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    note: 结构与实例分离；年份/季度按输入取得，不写死
+
+  - id: T-DIM-015
+    label: dim.classifying.layer
+    display: 索引层 / 明细层
+    family: dimension
+    layer: L3
+    broader: dim.classifying
+    definition: 索引层里素材/文案/资源位是句子里的词不是字段；明细在专题表
+    applies_to: [cross_table, table_structure]
+    related_dimensions: [classifying]
+    action: action.follow_task_id
+    status: active
+    scope: generic
+    note: 两层之间缺任务编号是已知最大断点；缺时靠人脑连，不得假装有键
+
+  - id: T-DIM-016
+    label: dim.classifying.skeleton_or_progress
+    display: 骨架层 / 进展层
+    family: dimension
+    layer: L3
+    broader: dim.classifying
+    definition: 骨架是固定组合可自动复制；进展是每周人工写、资料里天然没有
+    applies_to: [skeleton_row, progress_cell]
+    related_dimensions: [classifying, nature]
+    action: action.copy_skeleton_only
+    status: active
+    scope: generic
+    note: 骨架行即使本周无进展也保留空行，不因无内容删行
+
+# ═══════════════════════════════════════════════════════════════
+# 二、性质标签（nature）—— 全体系中枢，决定 AI 能不能动
+# ═══════════════════════════════════════════════════════════════
+nature_tags:
+
+  - id: T-NAT-001
+    label: nature.fact_queryable
+    display: A · 可查事实
+    family: nature
+    layer: L3
+    definition: 已写在资料里的客观内容；判据「上周/去年的资料里会不会写？」会→A
+    applies_to: [any_cell, retrieval]
+    related_dimensions: [nature, locating]
+    action: action.auto_fill_with_coordinate
+    status: active
+    scope: generic
+    evidence_required: true
+    note: 渠道名单、资源位、排期节点、历史模板；固定维度可豁免时间窗检查
+
+  - id: T-NAT-002
+    label: nature.live_status
+    display: B · 实时状态
+    family: nature
+    layer: L3
+    definition: 此刻由人维护的进展、完成情况、阻塞；资料里天然没有，不进检索分母
+    applies_to: [progress_cell, any_cell]
+    related_dimensions: [nature]
+    action: action.emit_pending_list
+    status: active
+    scope: generic
+    evidence_required: false
+    note: 进度类内容在历史资料里通常覆盖极低（来源项目实测如此）；只能读在线表当前值或问人，不猜
+
+  - id: T-NAT-003
+    label: nature.judgment
+    display: C · 判断决策
+    family: nature
+    layer: L3
+    definition: 需要人拍板的取舍（优先级、预算取舍、是否补资料）
+    applies_to: [any_cell, exam_and_gate]
+    related_dimensions: [nature]
+    action: action.propose_options
+    status: active
+    scope: generic
+    note: 只出选项 + 依据，等人拍板；「暂放某平台」仍是建议不算确定事实
+
+  - id: T-NAT-004
+    label: nature.sensitive
+    display: D · 敏感
+    family: nature
+    layer: L3
+    definition: 涉及人/钱/权限的字段；按字段语义扣留，不按列坐标
+    applies_to: [sensitive_field, any_cell]
+    related_dimensions: [nature, governance]
+    action: action.withhold_and_point
+    status: active
+    scope: generic
+    note: 分 owner/account/code/budget 四子类；白名单必须先于形态规则，防漏扣也防过度扣留
+
+# ═══════════════════════════════════════════════════════════════
+# 三、动作标签（action）—— 直接告诉 AI 做什么
+# ═══════════════════════════════════════════════════════════════
+action_tags:
+
+  - id: T-ACT-001
+    label: action.auto_fill_with_coordinate
+    display: 自动填并附坐标
+    family: action
+    layer: L3
+    definition: 有原文证据，自动给值，必须带来源/记录号/列/原文片段
+    applies_to: [any_cell, retrieval]
+    related_dimensions: [nature, governance]
+    action: self
+    status: active
+    scope: generic
+    evidence_required: true
+
+  - id: T-ACT-002
+    label: action.emit_pending_list
+    display: 出待确认清单
+    family: action
+    layer: L3
+    definition: 给格子坐标 + 上期计划当核对项，列给人补，不猜
+    applies_to: [progress_cell]
+    related_dimensions: [nature]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-003
+    label: action.propose_options
+    display: 只出选项与依据
+    family: action
+    layer: L3
+    definition: 列出可选方案与判断依据，等业务方拍板
+    applies_to: [any_cell]
+    related_dimensions: [nature]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-004
+    label: action.withhold_and_point
+    display: 扣留并指路
+    family: action
+    layer: L3
+    definition: 不读该值，只指明去哪里找、找谁确认；扣留格必须单列清单
+    applies_to: [sensitive_field]
+    related_dimensions: [nature, governance]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-005
+    label: action.flag_red_and_escalate
+    display: 标红上报不选边
+    family: action
+    layer: L3
+    definition: 资料/答案内部打架时标红上报，助手不替人选哪一个
+    applies_to: [exam_and_gate, retrieval]
+    related_dimensions: [governance]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-006
+    label: action.mark_unresolved
+    display: 记未找到并留检索式
+    family: action
+    layer: L3
+    definition: 写 unresolved，附 ≥3 条试过的检索式 + 最接近坐标 + 不可用理由
+    applies_to: [retrieval, any_cell]
+    related_dimensions: [governance]
+    action: self
+    status: active
+    scope: generic
+    note: 与 withheld 分开记，禁止写「放弃」
+
+  - id: T-ACT-007
+    label: action.trichotomize_blank
+    display: 空白三分判定
+    family: action
+    layer: L3
+    definition: 逐格判 🟢正在推进 / 🟡延续中 / 🔴缺填写信息，不得默认完成或未完成
+    applies_to: [progress_cell, any_cell]
+    related_dimensions: [nature, governance]
+    action: self
+    status: active
+    scope: generic
+    note: 依据三通道（群聊/文档/本周新建文件）；表已建但内容空 ≠ 工作已完成
+
+  - id: T-ACT-008
+    label: action.normalize_then_match
+    display: 归一化后比对
+    family: action
+    layer: L3
+    definition: 剥分类前缀、查别名表、大小写与全半角统一后再等价匹配
+    applies_to: [retrieval, cross_table]
+    related_dimensions: [governance]
+    action: self
+    status: active
+    scope: generic
+    note: 规则取自资料内部写法，禁止从答案反推
+
+  - id: T-ACT-009
+    label: action.copy_skeleton_only
+    display: 只复制骨架
+    family: action
+    layer: L3
+    definition: 复制上期固定组合结构，进展/计划/风险一律留空转人工
+    applies_to: [skeleton_row, write_target]
+    related_dimensions: [classifying, nature]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-010
+    label: action.pick_retrieval_strategy
+    display: 按聚居度选取法
+    family: action
+    layer: L3
+    definition: 聚居→整表映射；半聚居→定位区域；弥散→靠坐标；四路召回取并集
+    applies_to: [retrieval]
+    related_dimensions: [classifying]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-011
+    label: action.confirm_channel_and_time
+    display: 确认渠道与时间节点
+    family: action
+    layer: L3
+    definition: 笼统活动名不得直接采用，必须同时确认渠道 + 时间节点
+    applies_to: [retrieval, fill_decision]
+    related_dimensions: [locating]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-012
+    label: action.resolve_from_config
+    display: 从配置层取值
+    family: action
+    layer: L3
+    definition: 该维度的取值属于可换配置层，读 config/ 而非写死在骨架
+    applies_to: [any_record]
+    related_dimensions: [locating, classifying]
+    action: self
+    status: active
+    scope: generic
+    note: 换项目时这是最先要刷新的动作
+
+  - id: T-ACT-013
+    label: action.load_fill_instruction
+    display: 加载填写说明书
+    family: action
+    layer: L3
+    definition: 按表种取对应的每表填写说明书，不套死旧列号
+    applies_to: [table_structure]
+    related_dimensions: [classifying]
+    action: self
+    status: active
+    scope: generic
+
+  - id: T-ACT-014
+    label: action.follow_task_id
+    display: 沿任务编号关联两层
+    family: action
+    layer: L3
+    definition: 索引层与明细层之间按任务编号对齐；无编号时明确告知靠人工连，不假装有键
+    applies_to: [cross_table]
+    related_dimensions: [classifying]
+    action: self
+    status: active
+    scope: generic
+    note: 任务编号体系尚未建立，属已知断点
+
+  - id: T-ACT-015
+    label: action.diff_preview_before_write
+    display: 写前差异预览
+    family: action
+    layer: L3
+    definition: 同值跳过 / 有冲突问 / 已确认内容不自主替换 / 改期或疑似取消只提示不删
+    applies_to: [write_target]
+    related_dimensions: [governance]
+    action: self
+    status: active
+    scope: generic
+
+# ═══════════════════════════════════════════════════════════════
+# 四、状态标签（state）—— 值/结论当前处于什么状态
+# ═══════════════════════════════════════════════════════════════
+state_tags:
+
+  - id: T-ST-001
+    label: state.confirmed
+    display: 已确认
+    family: state
+    layer: L3
+    definition: 业务方明确答复并留存确认人、来源、节点与时间
+    applies_to: [any_cell]
+    related_dimensions: [governance]
+    action: action.auto_fill_with_coordinate
+    status: active
+    scope: generic
+    note: 未答复不算已确认；节点事实不能自动变成所有季度的规则
+
+  - id: T-ST-002
+    label: state.suggested
+    display: 建议（骨架/AI 补充）
+    family: state
+    layer: L3
+    definition: 来自历史骨架或 AI 补充，明确标「建议」，未被确认前不是事实
+    applies_to: [any_cell, skeleton_row]
+    related_dimensions: [governance]
+    action: action.propose_options
+    status: active
+    scope: generic
+
+  - id: T-ST-003
+    label: state.pending
+    display: 待确认
+    family: state
+    layer: L3
+    definition: 问题已提出、候选已列，等待业务方答复
+    applies_to: [progress_cell, any_cell]
+    related_dimensions: [governance]
+    action: action.emit_pending_list
+    status: active
+    scope: generic
+
+  - id: T-ST-004
+    label: state.unresolved
+    display: 资料里没有（查过）
+    family: state
+    layer: L3
+    definition: 检索过但资料本身没有，附检索式与最接近坐标
+    applies_to: [retrieval, any_cell]
+    related_dimensions: [governance]
+    action: action.mark_unresolved
+    status: active
+    scope: generic
+    note: 与 withheld 严格分开；「资料缺口」不是「检索失败」
+
+  - id: T-ST-005
+    label: state.withheld
+    display: 被安全扣留
+    family: state
+    layer: L3
+    definition: 有内容但按字段语义被扣留；必须单列清单交人确认
+    applies_to: [sensitive_field]
+    related_dimensions: [governance, nature]
+    action: action.withhold_and_point
+    status: active
+    scope: generic
+
+  - id: T-ST-006
+    label: state.coincidentally_correct
+    display: 碰巧写对（不计分）
+    family: state
+    layer: L3
+    definition: 无原文证据但恰好正确，单列不进覆盖率
+    applies_to: [exam_and_gate]
+    related_dimensions: [governance]
+    action: action.mark_unresolved
+    status: active
+    scope: generic
+
+  - id: T-ST-007
+    label: state.conflict
+    display: 冲突
+    family: state
+    layer: L3
+    definition: 多处取值不一致或资料/答案打架
+    applies_to: [any_cell, exam_and_gate]
+    related_dimensions: [governance]
+    action: action.flag_red_and_escalate
+    status: active
+    scope: generic
+    note: 多处有变动以最新更新日期为准，须写出两处坐标与日期；打架时助手不选边
+
+# ═══════════════════════════════════════════════════════════════
+# 五、治理标签（governance）—— 算不算对 / 能不能用
+# ═══════════════════════════════════════════════════════════════
+governance_tags:
+
+  - id: T-GOV-001
+    label: gov.caliber.window
+    display: 口径 · 时间窗
+    family: governance
+    layer: L3
+    definition: 只认目标节点窗口内的证据；渠道名单等固定维度豁免
+    applies_to: [exam_and_gate, retrieval]
+    related_dimensions: [governance, locating]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    note: 窗口起止日期由 config/ 定义，骨架不写死
+
+  - id: T-GOV-002
+    label: gov.caliber.same_name_diff_node
+    display: 口径 · 同名不同节点不算
+    family: governance
+    layer: L3
+    definition: 不同节点的同名内容视为不同内容；全平台口径不能当渠道级答案
+    applies_to: [exam_and_gate, retrieval]
+    related_dimensions: [governance, locating]
+    action: action.confirm_channel_and_time
+    status: active
+    scope: generic
+
+  - id: T-GOV-003
+    label: gov.caliber.withheld_denominator
+    display: 口径 · 扣留格单列
+    family: governance
+    layer: L3
+    definition: 扣留格移出分母，但必须单独出清单，禁止静默跳过
+    applies_to: [exam_and_gate]
+    related_dimensions: [governance, nature]
+    action: action.withhold_and_point
+    status: active
+    scope: generic
+
+  - id: T-GOV-004
+    label: gov.caliber.no_cross_season
+    display: 口径 · 跨赛季/跨区服不可互证
+    family: governance
+    layer: L3
+    definition: 不同赛季/区服资料互不作证；三件事（PV发布/定档/首发）禁止混谈互推
+    applies_to: [exam_and_gate, retrieval]
+    related_dimensions: [governance, locating]
+    action: action.flag_red_and_escalate
+    status: active
+    scope: generic
+    note: 资料自标「施工中/拍脑袋版」不可作证据
+
+  - id: T-GOV-005
+    label: gov.metric.denominator_required
+    display: 口径 · 比例必须标分母
+    family: governance
+    layer: L3
+    definition: 任何覆盖率/比例都标注分母；有效分母 = 全量 − 扣留；数字分有效/待定/废弃三态
+    applies_to: [exam_and_gate]
+    related_dimensions: [governance]
+    action: action.resolve_from_config
+    status: active
+    scope: generic
+    note: 具体数字属项目专属，随 config/ 刷新，骨架不携带
+
+  - id: T-GOV-006
+    label: gov.sensitive.by_semantics
+    display: 敏感 · 按字段语义扣留
+    family: governance
+    layer: L3
+    definition: 按字段语义判定，禁止按列坐标；白名单优先于形态规则
+    applies_to: [sensitive_field]
+    related_dimensions: [governance, nature]
+    action: action.withhold_and_point
+    status: active
+    scope: generic
+    note: ⚠️ 使用方需自行确认：本项目是否采用「按字段语义而非列坐标」的扣留口径（来源项目为待确认项）
+
+  - id: T-GOV-007
+    label: gov.sensitivity.subtype
+    display: 敏感 · 四子类
+    family: governance
+    layer: L3
+    definition: owner(withhold) / account(withhold) / code(count_only) / budget(header_only)
+    applies_to: [sensitive_field]
+    related_dimensions: [governance, nature]
+    action: action.withhold_and_point
+    status: active
+    scope: generic
+    note: 只统计数量、只留表头，不读码、不读金额
+
+  - id: T-GOV-008
+    label: gov.authorization.readonly_source
+    display: 授权 · 原表只读
+    family: governance
+    layer: L3
+    definition: 原表/参考快照/他人维护文件只读禁改；写入仅限授权新表或独立副本
+    applies_to: [write_target, any_record]
+    related_dimensions: [governance]
+    action: action.diff_preview_before_write
+    status: active
+    scope: generic
+    note: 副本命名带「测试/副本」，结果不回写原表、不反向同步
+
+  - id: T-GOV-009
+    label: gov.authorization.chat_readonly
+    display: 授权 · 群聊只读取证
+    family: governance
+    layer: L3
+    definition: 指定群/时段只读取证，同游戏同节点、原文可查、无冲突才采用
+    applies_to: [retrieval, source_identity]
+    related_dimensions: [governance]
+    action: action.normalize_then_match
+    status: active
+    scope: generic
+    note: 不发送、不通知、不拉群
+
+  - id: T-GOV-010
+    label: gov.evidence.coordinate_required
+    display: 证据 · 每结论带坐标
+    family: governance
+    layer: L3
+    definition: 来源 ID/记录号/列/原文片段 + 快照时间；只有整份文档链接不够
+    applies_to: [retrieval, any_cell]
+    related_dimensions: [governance]
+    action: action.auto_fill_with_coordinate
+    status: active
+    scope: generic
+
+  - id: T-GOV-011
+    label: gov.evidence.three_channels
+    display: 证据 · 三通道
+    family: governance
+    layer: L3
+    definition: 群聊补动作 / 文档补事实 / 本周新建或修改文件补产出与缺口
+    applies_to: [retrieval, progress_cell]
+    related_dimensions: [governance]
+    action: action.trichotomize_blank
+    status: active
+    scope: generic
+
+  - id: T-GOV-012
+    label: gov.acceptance.code_judged
+    display: 验收 · 代码判题
+    family: governance
+    layer: L3
+    definition: 冻结答案 + 代码判题，不用模型阅卷；召回闸门三项全过才许交付
+    applies_to: [exam_and_gate]
+    related_dimensions: [governance]
+    action: action.mark_unresolved
+    status: active
+    scope: generic
+    note: 低覆盖率是安全阀；提覆盖率前必须先有裁判
+
+  - id: T-GOV-013
+    label: gov.acceptance.regression
+    display: 验收 · 双轨回归
+    family: governance
+    layer: L3
+    definition: 规则变更跑业务内容 + 旧格式双轨回归，各指标不退化才保留，退化可撤回
+    applies_to: [exam_and_gate]
+    related_dimensions: [governance]
+    action: action.diff_preview_before_write
+    status: active
+    scope: generic
+    note: 不靠总分互抵；重复同卷是回归不是迁移能力证明
+
+  - id: T-GOV-014
+    label: gov.name.normalization
+    display: 归一化 · 剥前缀查别名
+    family: governance
+    layer: L3
+    definition: 大小写不敏感、剥分类前缀、查别名表、全半角与空白统一
+    applies_to: [retrieval, cross_table]
+    related_dimensions: [governance]
+    action: action.normalize_then_match
+    status: active
+    scope: generic
+    note: 后缀（渠道/平台）高危，已停用全局剥离，避免语义丢失
+
+# ═══════════════════════════════════════════════════════════════
+# 六、L2 类层标签（作为上位节点，供 broader 引用）
+# ═══════════════════════════════════════════════════════════════
+class_tags:
+  - { id: T-CLS-001, label: dim.locating,        display: 定位族,   family: dimension,  layer: L2, definition: 记录挂在哪（坐标维度）,       applies_to: [any_record],        related_dimensions: [locating],    action: action.resolve_from_config, status: active, scope: generic }
+  - { id: T-CLS-002, label: dim.classifying,     display: 分类族,   family: dimension,  layer: L2, definition: 记录是什么（归类维度）,       applies_to: [any_record],        related_dimensions: [classifying], action: action.resolve_from_config, status: active, scope: generic }
+  - { id: T-CLS-003, label: nature.root,          display: 性质族,   family: nature,     layer: L2, definition: AI 能不能动这格,             applies_to: [any_cell],          related_dimensions: [nature],      action: action.emit_pending_list,   status: active, scope: generic }
+  - { id: T-CLS-004, label: governance.caliber,   display: 判定口径, family: governance, layer: L2, definition: 什么算找到（不改业务事实）,   applies_to: [exam_and_gate],     related_dimensions: [governance],  action: action.resolve_from_config, status: active, scope: generic }
+  - { id: T-CLS-005, label: governance.sensitive, display: 敏感策略, family: governance, layer: L2, definition: 按字段语义扣留,               applies_to: [sensitive_field],   related_dimensions: [governance],  action: action.withhold_and_point,  status: active, scope: generic }
+  - { id: T-CLS-006, label: governance.acceptance,display: 验收裁判, family: governance, layer: L2, definition: 交付前把关,                   applies_to: [exam_and_gate],     related_dimensions: [governance],  action: action.diff_preview_before_write, status: active, scope: generic }
+
+# ═══════════════════════════════════════════════════════════════
+# 七、change_log（本实例的变更留痕）
+# ═══════════════════════════════════════════════════════════════
+change_log:
+  - version: "1.0.0"
+    date: "2026-11-12"
+    change: "首版：6 类 L2 上位 + 16 维度 + 4 性质 + 15 动作 + 7 状态 + 14 治理标签，全部脱敏、scope=generic"
+    reviewer: "<ROLE_规则质检>"
+    note: "可作为分发版使用；具体项目值一律不进本文件，见 config/example.yaml"
